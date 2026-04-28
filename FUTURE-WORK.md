@@ -16,14 +16,16 @@ Our experiments use a single ~800-line AWS IoT Core codebase. While sufficient t
 
 ### Tier 1: Direct Fit
 
-**AACR-Bench** (alibaba/aacr-bench) — ⭐ Highest priority
+**AACR-Bench** ([alibaba/aacr-bench](https://github.com/alibaba/aacr-bench)) — ⭐ Highest priority
 - 200 real pull requests from 50 projects across 10 languages
 - 2,145 expert-annotated code review comments (the ground truth)
 - Built-in evaluator: semantic similarity + line-level matching → precision, recall, noise rate
+- 4 issue categories: Security, Defect, Maintainability, Performance
+- 3 context levels: diff-level, file-level, repo-level
 - **Why it fits:** Measures exactly what we measure — code review quality — with expert annotations
 - **What it would test:** Whether warm v3's advantage holds across languages, project sizes, and against professional reviewer annotations
 
-**OWASP Juice Shop** — Security axis validation
+**OWASP Juice Shop** ([juice-shop/juice-shop](https://github.com/juice-shop/juice-shop)) — Security axis validation
 - 111 intentionally planted security vulnerabilities across 16 OWASP categories
 - ~2.9MB TypeScript/JavaScript codebase, difficulty graded 1-6 stars
 - **Why it fits:** Known ground truth for security findings; tests whether warm lenses improve detection of subtle (5-6 star) vulnerabilities vs obvious (1-2 star) ones
@@ -31,15 +33,17 @@ Our experiments use a single ~800-line AWS IoT Core codebase. While sufficient t
 
 ### Tier 2: Binary Classification
 
-**OWASP BenchmarkJava** (2,740 test cases)
+**OWASP BenchmarkJava** ([OWASP-Benchmark/BenchmarkJava](https://github.com/OWASP-Benchmark/BenchmarkJava)) — 2,740 test cases
 - 1,415 truly vulnerable + 1,325 safe test cases
 - Exact TPR/FPR/Youden's J computation possible
+- Includes scorecard generators for AST tools
 - **Why it fits:** Ground truth is binary (vulnerable/safe), enabling statistical tests
 - **What it would test:** False positive suppression — a key observed difference between warm and coercive
 
-**CodeXGLUE Defect Detection** (27,318 labeled C/C++ functions)
-- Binary labels: defective/clean, from Devign dataset
-- Massive N for statistical power
+**CodeXGLUE Defect Detection** ([microsoft/CodeXGLUE](https://github.com/microsoft/CodeXGLUE/tree/main/Code-Code/Defect-detection)) — 27,318 labeled C/C++ functions
+- Binary labels: defective/clean, from Devign dataset (Zhou et al. 2019, NeurIPS)
+- Train/Dev/Test split: 21,854 / 2,732 / 2,732
+- Includes evaluator script and CodeBERT baseline (62.08% accuracy)
 - **Why it fits:** Enough samples for confident effect size estimation
 - **What it would test:** Whether warm prompting improves binary defect classification at scale
 
