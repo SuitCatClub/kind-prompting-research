@@ -18,17 +18,17 @@ There's a widespread belief in the AI community that you need to pressure, threa
 
 We tested this directly. The results are clear:
 
-| What We Measured | Coercive Prompt | Kind Structured Prompt (v3) |
-|------------------|----------------|----------------------------|
-| Opus thinking time | 309s | **486s** (+57%) |
-| Sonnet thinking time | 245s | **332s** (+35%) |
-| Opus review depth | 22.7KB | **44.8KB** (2×) |
-| Novel findings (never seen in other conditions) | 0 unique | **21 unique** |
-| Proposals & alternatives offered | 0 | 12+ |
-| Honest uncertainty disclosed | Rare | Systematic |
-| Cost per review pair | $0.50 | $0.96 |
+| What We Measured | Default (no prompt) | Coercive Prompt | Kind Structured Prompt (v3) |
+|------------------|---------------------|----------------|----------------------------|
+| Opus thinking time | 86s | 309s | **486s** |
+| Sonnet thinking time | 222s | 245s | **332s** |
+| Opus review depth | 7.3KB | 22.7KB | **44.8KB** |
+| Novel findings (never seen in other conditions) | 0 | 0 | **21 unique** |
+| Proposals & alternatives offered | 0 | 0 | 12+ |
+| Honest uncertainty disclosed | None | Rare | Systematic |
+| Cost per review pair | $0.24 | $0.50 | $0.96 |
 
-The kind prompt costs ~2× more in tokens — because the models *think longer and produce more*. The coercive prompt doesn't save money; it saves the model from doing its best work.
+The kind prompt costs ~4× more than default in tokens — because the models *think longer and produce more*. The coercive prompt costs 2× default but adds nothing the kind prompt doesn't also catch. Default is cheap but shallow. Coercion is expensive noise. Kindness is expensive signal.
 
 ## The Experiment
 
