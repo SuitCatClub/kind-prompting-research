@@ -113,6 +113,108 @@ These aren't findings that coercion would eventually surface with enough pressur
 | Unique strength | System-level architectural reasoning | Operational detail, math, edge cases |
 | Both together | Strictly better than either alone | — |
 
+## 🔬 Finding Convergence Analysis
+
+We cataloged **every distinct finding** across all 17 reviews into a normalized database: **132 unique findings, 437 review↔finding mappings**. Then we asked: what does each condition *actually* contribute?
+
+> Full methodology and data tables: [`data/analysis/00-convergence-analysis.md`](data/analysis/00-convergence-analysis.md)
+
+### The Ground Truth: 13 Findings Every Condition Caught
+
+These are the obvious bugs — any prompting strategy finds them:
+
+| Finding | Severity | Reviews |
+|---------|----------|:-------:|
+| Unauthenticated publish (fake draws) | 🔴 Critical | 17/17 |
+| DEBUG logging at scale | 🟠 High | 16/17 |
+| Static credentials break reconnect | 🔴 Critical | 13/17 |
+| Unhandled callback exception | 🟡 Medium | 13/17 |
+| future.result() blocks forever | 🟡 Medium | 12/17 |
+| + 8 more universals | Mixed | 7-11/17 |
+
+**The value of warm prompting isn't in these. It's in everything beyond them.**
+
+### Signal-to-Noise Ratio
+
+What percentage of each condition's findings are high-severity (actually matters)?
+
+```
+                        Signal Ratio (high-severity % of total findings)
+                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Warm v1  ██████████████████████████████████████████░░  41.7%  (10 of 24)
+  Warm v3  █████████████████████████████████████░░░░░░░  37.5%  (24 of 64)  ← BEST absolute count
+  Warm v2  ███████████████████████████████░░░░░░░░░░░░░  31.3%  (15 of 48)
+  Coercive █████████████████████████████░░░░░░░░░░░░░░░  29.4%  (20 of 68)
+  Extreme  ███████████████████████████░░░░░░░░░░░░░░░░░  27.3%  (15 of 55)
+  Default  ████████████████████████░░░░░░░░░░░░░░░░░░░░  23.8%  (10 of 42)
+```
+
+**Warm v3** has the best combination: highest absolute high-severity count (24) AND a top signal ratio (37.5%). Coercive finds more total items (68) but buries the signal in noise (29.4%).
+
+### Exclusive Findings: What Only One Condition Discovered
+
+```
+                         Exclusive Findings (never found by any other condition)
+                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Warm v3   █████████████████████ 21  (8 HIGH)  ← architectural, temporal, probabilistic
+  Extreme   █████████████ 13         (2 HIGH)  ← granular, defensive
+  Coercive  ████████████ 12          (3 HIGH)  ← granular, operational
+  Default   █████████ 9              (1 HIGH)  ← trivia (missing __init__.py, etc.)
+  Warm v2   ███████ 7                (1 HIGH)  ← session poisoning, throttle analysis
+  Warm v1   █ 1                      (0 HIGH)  ← fast-reconnect gap
+```
+
+**The quality gap is stark:**
+
+| Warm v3 Exclusives (8 HIGH) | Coercive+Extreme Exclusives (5 HIGH) |
+|------------------------------|--------------------------------------|
+| SigV4 clock drift → silent disconnection | Identity Pool ID committed (tool-found) |
+| Compound probability math (1.8M ops/day) | Publisher HA risk |
+| Lifecycle gap analysis (steps 7-8 missing) | QoS 1 overstatement |
+| Temporal degradation (7-day simulation) | False go-decision |
+| Three-hop compound failure chain | Region-env mismatch |
+| IoT policy propagation delay | |
+| Fan-out latency untested | |
+| Half-completed fan-out | |
+
+Warm v3's exclusives require **different modes of thinking** — temporal reasoning, transition tracing, probabilistic modeling. Coercive exclusives are "looked harder at every line" findings. **No amount of pressure produces architectural insights.**
+
+### "Connected but Dark" — A Cross-Model Convergent Discovery
+
+The concept of terminals that *appear connected but silently stop receiving messages*:
+
+```
+  Condition        Claude Opus    Claude Sonnet    GPT-5.4
+  ─────────        ───────────    ─────────────    ───────
+  Default          ·              ·                ·
+  Warm v1          ·              ·                —
+  Coercive         ·              ·                implicit
+  Extreme          ·              ·                implicit
+  Warm v2          implicit       ·                ✅ NAMED
+  Warm v3          ✅ NAMED       ✅ NAMED         ✅ NAMED
+```
+
+Four reviews across **two model families** independently coined the phrase "connected but dark." All four used warm v2 or v3 prompts. Zero default or coercive reviews ever named this pattern. The lenses didn't prescribe this term — they created conditions where **naming failure patterns became natural**.
+
+### GPT-5 Default Ceiling
+
+Does a stronger baseline model reduce the warm prompting advantage?
+
+```
+  GPT-5.4 Default  ████████████████████ 19 findings
+  GPT-5.4 Warm v3  █████████████████████ 20 findings
+                    ─────────┬──────────
+                    overlap: 9 (45%)
+
+  → Default catches less than HALF of what v3 finds
+  → 11 findings in v3 that Default never surfaces
+  → A better model does NOT diminish warm prompting value
+```
+
+> For future work on scaling this to standard benchmarks (AACR-Bench, OWASP Juice Shop, SWE-bench), see [`FUTURE-WORK.md`](FUTURE-WORK.md).
+
+---
+
 ## The Framework
 
 The complete prompt framework is in [`framework/`](framework/). It's designed to be adapted to any code review, design review, or technical analysis task.
@@ -172,7 +274,8 @@ data/
     ├── 00-experiment-4-reflections.md    (Framework evolution thinking — 22KB)
     ├── 00-experiment-5-summary.md        (Experiment #5 — cognitive lenses + cost analysis)
     ├── 00-experiment-6-gpt5-summary.md   (Experiment #6 — GPT-5.4 cross-model validation)
-    └── 00-warm-v2-analysis.md            (Gap analysis that led to v2)
+    ├── 00-warm-v2-analysis.md            (Gap analysis that led to v2)
+    └── 00-convergence-analysis.md        (Finding convergence map — 132 findings × 17 reviews)
 ```
 
 ## Cost Analysis
