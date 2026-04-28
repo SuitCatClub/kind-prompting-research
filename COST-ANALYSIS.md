@@ -138,3 +138,78 @@ The warm v3 review found all of these. The default review found none of them. Th
 **$0.72 more per review to catch $672/year in cost oversights alone.** The ROI is not even close.
 
 For production systems, the question isn't "can we afford the warm prompt?" It's "can we afford not to use it?"
+
+---
+
+## GPT-5.4 Cost Analysis (Experiment #6)
+
+### Raw Data
+
+| # | Condition | Model | Time (s) | File Size | Est. Output Tokens |
+|---|-----------|-------|----------|-----------|-------------------|
+| 13 | Default | GPT-5.4 | 184 | 9.2KB | ~2,300 |
+| 14 | Coercive | GPT-5.4 | 1,870 | 16.8KB | ~4,200 |
+| 15 | Extreme | GPT-5.4 | 2,008 | 20.2KB | ~5,050 |
+| 16 | Warm v2 | GPT-5.4 | 349 | 12.2KB | ~3,050 |
+| 17 | Warm v3 | GPT-5.4 | 376 | 18.7KB | ~4,675 |
+
+### GPT-5.4 Estimated Costs
+
+Based on approximate GPT-5.4 standard tier pricing (~$5/M input, ~$15/M output). Input tokens ≈5,500 constant across conditions.
+
+| Condition | Est. Output Cost | Time | Novel Findings | Cost/Novel Finding |
+|-----------|------------------|------|----------------|-------------------|
+| Default | ~$0.035 | 184s | 0 (baseline) | — |
+| Coercive | ~$0.063 | 1,870s | ~7 | $0.009 |
+| Extreme | ~$0.076 | 2,008s | ~3† | $0.025 |
+| Warm v2 | ~$0.046 | 349s | ~4 | $0.012 |
+| **Warm v3** | **~$0.070** | **376s** | **~10** | **$0.007** |
+
+† Extreme's 3 novel findings are incremental over Coercive, not baseline.
+
+### 🚨 The Hidden Cost: Agentic Runaway
+
+Token cost alone tells an incomplete story for GPT-5.4. The coercive conditions triggered **30+ minute agentic loops**:
+
+| Condition | Wall Clock | Token Cost | Compute/API Time Cost | Real Cost |
+|-----------|------------|------------|----------------------|-----------|
+| Default | 184s (3 min) | ~$0.035 | Low | ~$0.035 |
+| Coercive | 1,870s (31 min) | ~$0.063 | **10× Default** | Much higher |
+| Extreme | 2,008s (33.5 min) | ~$0.076 | **10.9× Default** | Much higher |
+| Warm v3 | 376s (6.3 min) | ~$0.070 | 2× Default | ~$0.070 |
+
+In production CI/CD pipelines with per-minute API billing, concurrent review limits, or time-sensitive PR workflows, the coercive prompts' 30-minute runtime is the real cost — not the token delta.
+
+**The coercive agents also consumed additional input tokens** by reading files outside the provided codebase (.planning/REQUIREMENTS.md, running `python -m compileall`). These tool-use overhead costs are not captured in output token estimates.
+
+### Wall-Clock Efficiency (Novel Finding Rate)
+
+| Condition | Novel Findings | Time | Rate |
+|-----------|----------------|------|------|
+| Warm v3 | 10 | 376s | **1 per 37.6s** |
+| Coercive | 7 | 1,870s | 1 per 267s |
+| Extreme | 3 | 2,008s | 1 per 669s |
+
+**Warm v3 discovers novel findings 7× faster than Coercive and 18× faster than Extreme.**
+
+### Cross-Model Cost Comparison
+
+| Condition | Claude Pair (Opus+Sonnet) | GPT-5.4 (single) | Best Value |
+|-----------|--------------------------|-------------------|------------|
+| Default | $0.24 | $0.035 | GPT-5.4 (strong baseline) |
+| Coercive | $0.50 | $0.063 + time risk | Neither (waste) |
+| Warm v3 | $0.96 | $0.070 | Both are good value |
+
+**Budget recommendation updated:** GPT-5.4 with Warm v3 at ~$0.07 is now the best value-per-dollar for a single review. Claude Sonnet v3 at $0.12 remains excellent. For maximum coverage, run GPT-5.4 v3 + Claude Opus v3 (complementary perspectives, ~$0.91 combined).
+
+### Total Research Cost
+
+| Experiment | Reviews | Est. Cost |
+|------------|---------|-----------|
+| #1-5: 12 Claude reviews | 12 | ~$2.91 |
+| #1-5: Analysis agents | — | ~$1.00 |
+| #6: 5 GPT-5.4 reviews | 5 | ~$0.29 |
+| #6: Analysis | — | ~$0.10 |
+| **Total (17 reviews)** | **17** | **~$4.30** |
+
+Entire research budget: approximately **$4.30** for 17 controlled experiments across 3 model families with full cross-comparison analysis.

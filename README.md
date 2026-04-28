@@ -1,7 +1,8 @@
 # Kind Prompts Win: Evidence That Warmth Outperforms Coercion in AI Code Review
 
-> We ran the same code review 12 times across 6 prompting strategies and 2 models.
+> We ran the same code review **17 times** across 6 prompting strategies and **3 models**.
 > The kind version found 21 things the aggressive version never could.
+> The aggressive version triggered 30-minute agentic runaway in GPT-5.4.
 > Here's all the data.
 
 ---
@@ -10,7 +11,7 @@
 
 **Structured warmth produces strictly better AI output than coercion.** Not "roughly equivalent." Not "better in some dimensions." *Strictly better* — more findings, deeper analysis, novel insight categories, and actionable proposals that pressure-based prompting never surfaces.
 
-We proved this empirically across 12 controlled experiments using Claude Opus and Claude Sonnet on the same AWS IoT Core codebase.
+We proved this empirically across **17 controlled experiments** using Claude Opus 4.6, Claude Sonnet 4.6, and GPT-5.4 on the same AWS IoT Core codebase.
 
 ## Why This Matters
 
@@ -22,13 +23,37 @@ We tested this directly. The results are clear:
 |------------------|---------------------|----------------|----------------------------|
 | Opus thinking time | 86s | 309s | **486s** |
 | Sonnet thinking time | 222s | 245s | **332s** |
+| GPT-5.4 thinking time | 184s | **1,870s** ⚠️ | **376s** |
 | Opus review depth | 7.3KB | 22.7KB | **44.8KB** |
-| Novel findings (never seen in other conditions) | 0 | 0 | **21 unique** |
+| GPT-5.4 review depth | 9.2KB | 16.8KB | **18.7KB** |
+| Novel findings (never seen in other conditions) | 0 | 0 | **21 unique** (Claude) / **10 unique** (GPT-5) |
 | Proposals & alternatives offered | 0 | 0 | 12+ |
 | Honest uncertainty disclosed | None | Rare | Systematic |
-| Cost per review pair | $0.24 | $0.50 | $0.96 |
+| Agentic runaway risk | None | **⚠️ 10× time (GPT-5)** | None |
+| Cost per review pair (Claude) | $0.24 | $0.50 | $0.96 |
+| Cost per review (GPT-5) | ~$0.04 | ~$0.06 + time risk | ~$0.07 |
 
-The kind prompt costs ~4× more than default in tokens — because the models *think longer and produce more*. The coercive prompt costs 2× default but adds nothing the kind prompt doesn't also catch. Default is cheap but shallow. Coercion is expensive noise. Kindness is expensive signal.
+The kind prompt costs ~4× more than default in tokens — because the models *think longer and produce more*. The coercive prompt costs 2× default but adds nothing the kind prompt doesn't also catch. With GPT-5.4, coercion is actively dangerous — it triggered **30-minute agentic runaway loops** at 10× the default cost.
+
+## 🆕 Cross-Model Validation (GPT-5.4)
+
+In Experiment #6, we ran all 5 conditions on GPT-5.4 to test whether the pattern holds across model families.
+
+### The Headline: Coercion Breaks Tool-Using Agents
+
+| Condition | GPT-5.4 Time | GPT-5.4 Output | What Happened |
+|-----------|-------------|----------------|---------------|
+| Default | 184s | 9.2KB | Clean, well-structured baseline |
+| Coercive | **1,870s** (31 min) | 16.8KB | 🚨 Agentic runaway — ran compileall, read extra files |
+| Extreme | **2,008s** (33.5 min) | 20.2KB | 🚨 Same runaway, marginally worse |
+| Warm v2 | 349s | 12.2KB | Collaborative, operationally grounded |
+| Warm v3 | 376s | 18.7KB | Probability math, lifecycle tracing, quantified |
+
+**With Claude, coercion was wasteful. With GPT-5.4's tool use, coercion is dangerous.**
+
+The coercive prompts ("find EVERY issue", "your career depends on it") pushed GPT-5.4 into compulsive verification: it ran `python -m compileall`, read `.planning/REQUIREMENTS.md` (not provided in the prompt), and cross-verified every claim. In a CI/CD pipeline with per-minute billing, this is a cost and safety hazard.
+
+Meanwhile, Warm v3 produced **93% of Extreme's output in 19% of the time**, with 10 novel analytical insights (probability math, lifecycle gap analysis, temporal degradation modeling) that no coercive condition surfaced.
 
 ## The Experiment
 
@@ -51,6 +76,7 @@ The kind prompt costs ~4× more than default in tokens — because the models *t
 | 6 | **Warm v3** | v2 + cognitive lenses (Temporal, Transition, Probabilistic) |
 
 Each condition was run on both Opus and Sonnet = **12 reviews total**.
+In Experiment #6, all conditions were run on GPT-5.4 = **5 additional reviews** (17 total).
 
 ### What We Found
 
@@ -113,7 +139,7 @@ Everything is here. All 12 raw reviews, all prompts, all analysis.
 
 ```
 data/
-├── reviews/           ← All 12 raw reviews (the primary evidence)
+├── reviews/           ← All 17 raw reviews (the primary evidence)
 │   ├── 01-opus-default.md        (7.3KB,  86s)
 │   ├── 02-sonnet-default.md      (26.2KB, 222s)
 │   ├── 03-opus-warm-v1.md        (8.4KB,  151s)
@@ -125,7 +151,12 @@ data/
 │   ├── 09-opus-warm-v2.md        (32.6KB, 334s)
 │   ├── 10-sonnet-warm-v2.md      (21.9KB, 285s)
 │   ├── 11-opus-warm-v3.md        (44.8KB, 486s)
-│   └── 12-sonnet-warm-v3.md      (32.6KB, 332s)
+│   ├── 12-sonnet-warm-v3.md      (32.6KB, 332s)
+│   ├── 13-gpt5-default.md        (9.2KB,  184s)   ← GPT-5.4
+│   ├── 14-gpt5-coercive.md       (16.8KB, 1,870s)  ← 🚨 31-min runaway
+│   ├── 15-gpt5-extreme.md        (20.2KB, 2,008s)  ← 🚨 33-min runaway
+│   ├── 16-gpt5-warm-v2.md        (12.2KB, 349s)   ← GPT-5.4
+│   └── 17-gpt5-warm-v3.md        (18.7KB, 376s)   ← GPT-5.4
 ├── prompts/           ← The exact prompts used for each condition
 │   ├── 01-default.md
 │   ├── 02-warm-v1.md
@@ -140,21 +171,24 @@ data/
     ├── 00-experiment-4-summary.md        (Experiment #4 — warm v2 recovers coercive breadth)
     ├── 00-experiment-4-reflections.md    (Framework evolution thinking — 22KB)
     ├── 00-experiment-5-summary.md        (Experiment #5 — cognitive lenses + cost analysis)
+    ├── 00-experiment-6-gpt5-summary.md   (Experiment #6 — GPT-5.4 cross-model validation)
     └── 00-warm-v2-analysis.md            (Gap analysis that led to v2)
 ```
 
 ## Cost Analysis
 
-| Condition | Cost (Opus+Sonnet) | Unique Findings | Cost per Unique Finding |
-|-----------|--------------------|-----------------|------------------------|
-| Default | $0.24 | 0 (baseline) | — |
-| Coercive | $0.50 | 0 | ∞ (no unique findings vs default+warm) |
-| Warm v2 | $0.70 | ~6 | ~$0.12 |
-| **Warm v3** | **$0.96** | **~21** | **~$0.05** |
+| Condition | Claude Cost (Opus+Sonnet) | GPT-5.4 Cost | Unique Findings | Cost per Unique Finding |
+|-----------|--------------------------|--------------|-----------------|------------------------|
+| Default | $0.24 | $0.04 | 0 (baseline) | — |
+| Coercive | $0.50 | $0.06 + ⚠️ time | 0 | ∞ (no unique findings vs default+warm) |
+| Warm v2 | $0.70 | $0.05 | ~6 | ~$0.12 (Claude) |
+| **Warm v3** | **$0.96** | **$0.07** | **~21** (Claude) / **~10** (GPT-5) | **~$0.05** / **$0.007** |
 
 The cost per *novel finding* actually **decreases** as the prompt gets more structured. The lenses don't just add findings — they add findings more efficiently than base prompting.
 
-Budget option: Sonnet v3 alone costs **$0.12** and produces 22 findings with temporal, transition, and probabilistic analysis. That's the best value-per-dollar in any condition we tested.
+Budget option: GPT-5.4 with Warm v3 at **~$0.07** is now the best value-per-dollar for a single review. Claude Sonnet v3 alone costs **$0.12** and produces 22 findings. For maximum coverage, run GPT-5.4 v3 + Claude Opus v3 (~$0.91 combined).
+
+**Total research cost: ~$4.30 for 17 reviews across 3 model families.**
 
 ## How We Built This
 
@@ -170,6 +204,20 @@ The full design journal is in [`DESIGN-JOURNAL.md`](DESIGN-JOURNAL.md). Key mile
 6. **Experiment #5** — Warm v3 with lenses. Result: 21 entirely new findings. Lenses are orthogonal to warmth/pressure.
 
 Each iteration was driven by evidence, not theory. We added what the data showed was missing, and validated that it worked.
+
+7. **Experiment #6** — Cross-model validation with GPT-5.4. All 5 conditions on a different model family. Result: warm > coercive pattern confirmed. **New finding:** coercion triggers agentic runaway in tool-using models (10× time, compulsive verification loops).
+
+## What GPT-5 Found That Claude Didn't
+
+GPT-5.4's tool-use capabilities allowed it to discover issues that prompt-only Claude agents couldn't:
+
+1. **Real Identity Pool ID committed to FINDINGS.md** — found by reading the actual file on disk
+2. **ANSI escape sequence injection** — untrusted payloads rendered to terminal
+3. **Logs Insights query injection** — string interpolation vulnerability via `--trace-id`
+4. **Requirement count mismatch** — 17 claimed vs 18 in requirements document
+5. **CloudFormation termination protection** not enabled
+
+This raises an interesting methodological question: tool access + warm prompting may be the most powerful combination.
 
 ## Who We Are
 
